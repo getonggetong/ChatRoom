@@ -1,3 +1,5 @@
+package tong;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,11 +13,11 @@ public class Server {
 		try {
 			server = new ServerSocket(PORT);
 			System.out.println("Server on------------------------");
+			
 			while(true){
-				Socket clientSocket = server.accept();
+				Socket clientSocket = server.accept();//waiting for clients
 				onlineSockets.add(clientSocket);
-				ChatThread chatThread = new ChatThread(clientSocket);
-				chatThread.start();
+				new ChatThread(clientSocket).start();//new thread for a new client
 			}
 			
 		} catch (IOException e) {
