@@ -43,7 +43,7 @@ public class Server {
 				{
 					String[] userDataToken = userData.split(" ");
 					//userDataHash = {0 password, 1 online/offline, 2 ip, 3 wrongPasswordTimes, 4 LoginLock, 5 BeBlockedBy}
-					String[] userDataHash = {userDataToken[1], "offline", "", "0", "UNLOCK", ""};
+					String[] userDataHash = {userDataToken[1], "OFFLINE", "", "0", "UNLOCK", ""};
 					dataBase.put(userDataToken[0], userDataHash);
 				}
 			} catch (IOException e) {

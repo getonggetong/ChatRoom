@@ -41,6 +41,7 @@ public class ChatThread extends Thread{
 					user = br.readLine();
 				}while(user == null || user.equals(""));
 				System.out.println(user);
+				
 				/*check if the client is login locked*/
 				if(Server.dataBase.containsKey(user) 
 						&& Server.dataBase.get(user)[4].equals("LOCK") 
@@ -48,6 +49,22 @@ public class ChatThread extends Thread{
 					pw.println(user + " is still LOGIN LOCKED. Try later.");
 					//drop the connection
 					try {
+						pw.println("Connection closed.");
+						socket.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;//disconnect
+				}
+				
+				/*check if the client is already login*/
+				else if(Server.dataBase.containsKey(user)
+						&& Server.dataBase.get(user)[1].equals("ONLINE")){
+					pw.println(user + " is already login.");
+					//drop the connection
+					try {
+						pw.println("Connection closed.");
 						socket.close();
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
@@ -82,7 +99,7 @@ public class ChatThread extends Thread{
 			
 				pw.println("Welcome " + user + "! " + socket.getInetAddress());//welcome message
 				/*record login status of the client*/
-			    Server.dataBase.get(user)[1] = "online";//login status as online
+			    Server.dataBase.get(user)[1] = "ONLINE";//login status as online
 //				System.out.println(Server.dataBase.get(user)[1]);
 			    Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record ip address
 //			    System.out.println(Server.dataBase.get(user)[2]);
@@ -107,8 +124,8 @@ public class ChatThread extends Thread{
 						 
 						//drop the connection
 						try {
-							socket.close();
 							pw.println("Connection closed.");
+							socket.close();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();

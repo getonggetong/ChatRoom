@@ -59,7 +59,8 @@ public class Client{
 	}
 	
 	public static void main(String[] args){
-		new Client("127.0.0.1",8888);
+		
+		new Client(args[0], Integer.parseInt(args[1]));
 		
 	}
 }
