@@ -14,7 +14,7 @@ public class Server {
 	public static final long LAST_HOUR = 60*60*1000; //an hour in milliseconds
 	public static final long BLOCK_TIME = 60*1000; //60 secs in milliseconds
 	private static int PORT;//port number on server side
-	public static ArrayList<Socket> onlineSockets = new ArrayList<Socket>();//list of all online client sockets
+	public static ArrayList<String> onlineClients = new ArrayList<String>();//list of all online client clients
 	public static ArrayList<String> zombieList = new ArrayList<String>();//list of names of online and less than one hour zombies
 	private ServerSocket server;//server socket
 	public static HashMap<String, String[]> dataBase;

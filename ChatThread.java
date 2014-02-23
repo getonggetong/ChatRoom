@@ -37,7 +37,7 @@ public class ChatThread extends Thread{
 			
 			try {
 				do{
-					pw.println("Please enter your username: ");
+					pw.println("==========\n>>>>>Please enter your username:");
 					user = br.readLine();
 				}while(user == null || user.equals(""));
 				System.out.println(user);
@@ -46,10 +46,10 @@ public class ChatThread extends Thread{
 				if(Server.dataBase.containsKey(user) 
 						&& Server.dataBase.get(user)[4].equals("LOCK") 
 						&& Server.dataBase.get(user)[2].equals(socket.getInetAddress().toString())){
-					pw.println(user + " is still LOGIN LOCKED. Try later.");
+					pw.println("==========\n>>>>>" + user + " is still LOGIN LOCKED. Try later.");
 					//drop the connection
 					try {
-						pw.println("Connection closed.");
+						pw.println("==========\n>>>>>Connection closed.");
 						socket.close();
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
@@ -61,10 +61,10 @@ public class ChatThread extends Thread{
 				/*check if the client is already login*/
 				else if(Server.dataBase.containsKey(user)
 						&& Server.dataBase.get(user)[1].equals("ONLINE")){
-					pw.println(user + " is already login.");
+					pw.println("==========\n>>>>>" + user + " is already login.");
 					//drop the connection
 					try {
-						pw.println("Connection closed.");
+						pw.println("==========\n>>>>>Connection closed.");
 						socket.close();
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
@@ -80,7 +80,7 @@ public class ChatThread extends Thread{
 			
 			try {
 				do{
-					pw.println("Please enter your password: ");
+					pw.println("==========\n>>>>>Please enter your password:");
 					pass = br.readLine();
 				}while(pass == null || pass.equals(""));
 				System.out.println(pass);
@@ -97,7 +97,7 @@ public class ChatThread extends Thread{
 			/*start to serve the client if authenticated*/
 			if(isClient){
 			
-				pw.println("Welcome " + user + "! " + socket.getInetAddress());//welcome message
+				pw.println("==========\n>>>>>Welcome " + user + "! " + socket.getInetAddress());//welcome message
 				/*record login status of the client*/
 			    Server.dataBase.get(user)[1] = "ONLINE";//login status as online
 //				System.out.println(Server.dataBase.get(user)[1]);
@@ -107,13 +107,13 @@ public class ChatThread extends Thread{
 //			    System.out.println(Server.dataBase.get(user)[3]);
 			    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
 //			    System.out.println(Server.dataBase.get(user)[4]);
-			    Server.onlineSockets.add(socket);//add the socket into online socket list
+			    Server.onlineClients.add(user);//add the socket into online socket list
 			    Server.zombieList.add(user);//add username into zombie list
 			}
 			else{
 				/*if no such a user*/
 				if(!Server.dataBase.containsKey(user))
-					pw.println("Invalid username and/or password. Please try again");
+					pw.println("==========\n>>>>>Invalid username and/or password. Please try again");
 				/*Wrong password. record the wrong trial time*/
 				else{
 					int failTimes = Integer.parseInt(Server.dataBase.get(user)[3]);
@@ -126,7 +126,7 @@ public class ChatThread extends Thread{
 						 
 						//drop the connection
 						try {
-							pw.println("Connection closed.");
+							pw.println("==========\n>>>>>Connection closed.");
 							socket.close();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
@@ -135,7 +135,7 @@ public class ChatThread extends Thread{
 						break;//disconnect
 					}
 					else{
-						pw.println("Invalid username and/or password. Please try again");
+						pw.println("==========\n>>>>>Invalid username and/or password. Please try again");
 						failTimes++;
 						Server.dataBase.get(user)[3] = failTimes + "";//increase wrong trial time
 					}
@@ -159,30 +159,48 @@ public class ChatThread extends Thread{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				if(command.equals("logout")){
-					pw.println("Bye " + user + "!");
-					Server.onlineSockets.remove(socket);
-					Timer timer = new Timer();
-					timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);
-					Server.dataBase.get(user)[1] = "OFFLINE";
-					
-					//drop the connection
-					try {
-						pw.println("Connection closed.");
-						socket.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+				
+				if(command != null){
+					/*logout this client*/
+					if(command.equals("logout")){
+						this.logout();
+						break;//disconnect
 					}
-					while(true){
-						System.out.println(Server.zombieList.size());
+					else if(command.equals("whoelse")){
+						String userName;
+						for(int i = 0; i < Server.onlineClients.size(); i++){
+							userName =  Server.onlineClients.get(i);
+							if(!userName.equals(user) && userName != null){
+								pw.println(userName);
+							}
+						}
+							
 					}
-//					break;//disconnect
+					else{
+						pw.println("\"" + command + "\"" + "Command Not Found");
+					}
 				}
 			}
 		}
 		
 		
-        
+	}
+	
+	/*logout client*/
+	public void logout(){
+		pw.println("==========\n>>>>>Bye " + user + "!");
+		Server.onlineClients.remove(user);//remove client from online list
+		Timer timer = new Timer();
+		timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);//remove client from zombie list after LAST_HOUR
+		Server.dataBase.get(user)[1] = "OFFLINE";//change its status as offline
+		
+		//drop the connection
+		try {
+			pw.println("==========\n>>>>>Connection closed");
+			socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

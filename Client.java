@@ -11,7 +11,7 @@ public class Client{
 	public int PORT;
 	public Socket socket;
 	public String user;
-	public PrintWriter pw;
+	public static PrintWriter pw;
 	public BufferedReader br;
 	
 	public Client(String IP, int PORT){
@@ -41,8 +41,11 @@ public class Client{
 			e2.printStackTrace();
 		}
         
-        /*start thread to wait user input and send message to server*/
-        new ClientSenderThread(pw).start();
+        /*create new thread to wait user input and send message to server*/
+        final ClientSenderThread csThread = new ClientSenderThread(pw);
+        /*register shutdownhook to deal with exit of clients*/
+        new ShutDownHook(pw);
+        csThread.start();
         
         String serverMsg;
         /*wait messages from server*/
@@ -57,6 +60,7 @@ public class Client{
 			}
         }
 	}
+	
 	
 	public static void main(String[] args){
 		

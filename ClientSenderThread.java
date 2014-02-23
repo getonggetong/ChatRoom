@@ -17,7 +17,6 @@ public class ClientSenderThread extends Thread{
         while(true){
             try {
             	String command = reader.readLine();
-            	System.out.println(command);
             	if(command != null && !command.equals(""))
             		pw.println(command);
     		} catch (IOException e) {
