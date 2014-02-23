@@ -113,6 +113,8 @@ public class ChatThread extends Thread{
 //			    Server.onlineSockets.add(socket);//add the socket into online list
 			    Server.zombieList.add(user);//add username into zombie list
 			    Server.serverWriter.put(user, pw);//add the PrintWriter of this socket
+			    pw.println(Server.dataBase.get(user)[6]);//send all offline messages
+			    Server.dataBase.get(user)[6] = "";//reset offline messages buffer
 			}
 			else{
 				/*if no such a user*/
@@ -182,6 +184,10 @@ public class ChatThread extends Thread{
 					else if(command.split(" ")[0].equals("broadcast")){
 						broadcast(Server.serverWriter, command);
 					}
+					/*private message*/
+					else if(command.split(" ")[0].equals("message")){
+						privateMsg(Server.serverWriter, Server.dataBase, command);
+					}
 					else{
 						pw.println("\"" + command + "\"" + "Command Not Found");
 					}
@@ -189,7 +195,32 @@ public class ChatThread extends Thread{
 			}
 		}
 	}
-	
+	/*private message*/
+	public void privateMsg(HashMap<String, PrintWriter> map, HashMap<String, String[]> dataBase, String command){
+		String[] subCmd = command.split(" ");
+		String targetUser = subCmd[1];
+		String msg = user + ": ";
+		/*construct the whole message*/
+		if(subCmd.length >= 2){
+			for(int i = 2; i < subCmd.length; i++){
+				msg = msg.concat(subCmd[i]).concat(" ");
+			}
+			/*send private message if target client is online*/
+			if(map.containsKey(targetUser)){
+				map.get(targetUser).println(msg);
+				
+			}
+			/*store the message if target client is not online*/
+			else if(dataBase.containsKey(targetUser)){
+				dataBase.get(targetUser)[6] = dataBase.get(targetUser)[6].concat(msg + "\n");
+			}
+			/*Invalid target user*/
+			else{
+				pw.println("User " + targetUser + "doesn't exist.");
+			}
+		}
+		
+	}
 	/*broadcast to all online clients*/
 	public void broadcast(HashMap<String, PrintWriter> map, String command){
 		Object[] pws = map.values().toArray();//transfer values (PrintWriters) in the HashMap into an array
