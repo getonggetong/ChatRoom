@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Timer;
 
 public class ChatThread extends Thread{
@@ -107,8 +109,10 @@ public class ChatThread extends Thread{
 //			    System.out.println(Server.dataBase.get(user)[3]);
 			    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
 //			    System.out.println(Server.dataBase.get(user)[4]);
-			    Server.onlineClients.add(user);//add the socket into online socket list
+			    Server.onlineClients.add(user);//add the client into online list
+//			    Server.onlineSockets.add(socket);//add the socket into online list
 			    Server.zombieList.add(user);//add username into zombie list
+			    Server.serverWriter.put(user, pw);//add the PrintWriter of this socket
 			}
 			else{
 				/*if no such a user*/
@@ -163,18 +167,20 @@ public class ChatThread extends Thread{
 				if(command != null){
 					/*logout this client*/
 					if(command.equals("logout")){
-						this.logout();
+						logout();
 						break;//disconnect
 					}
+					/*who is currently online*/
 					else if(command.equals("whoelse")){
-						String userName;
-						for(int i = 0; i < Server.onlineClients.size(); i++){
-							userName =  Server.onlineClients.get(i);
-							if(!userName.equals(user) && userName != null){
-								pw.println(userName);
-							}
-						}
-							
+						whosOnList(Server.onlineClients);
+					}
+					/*who logged in in last hour*/
+					else if(command.equals("wholasthr")){
+						whosOnList(Server.zombieList);
+					}
+					/*broadcast*/
+					else if(command.split(" ")[0].equals("broadcast")){
+						broadcast(Server.serverWriter, command);
 					}
 					else{
 						pw.println("\"" + command + "\"" + "Command Not Found");
@@ -182,18 +188,40 @@ public class ChatThread extends Thread{
 				}
 			}
 		}
-		
-		
 	}
 	
+	/*broadcast to all online clients*/
+	public void broadcast(HashMap<String, PrintWriter> map, String command){
+		Object[] pws = map.values().toArray();//transfer values (PrintWriters) in the HashMap into an array
+		String msg = command.replace("broadcast ", "");//get broadcast message
+		for(int i = 0; i < pws.length; i++){//iterate all PrintWriters in the HashMap of online clients
+			PrintWriter brcstPw = (PrintWriter) pws[i];
+			if(!brcstPw.equals(pw))//broadcast to all other online clients
+				brcstPw.println(user + ": " + msg);
+		}
+	}
+	/*deal with who's online and who login in last hour*/
+	public void whosOnList(ArrayList<String> list){
+		String userName;
+		/*no clients online except the current one*/
+		if(list.size() == 1)
+			pw.println("==========\n>>>>>No one else online");
+		for(int i = 0; i < list.size(); i++){
+			userName =  list.get(i);
+			if(!userName.equals(user) && userName != null){
+				pw.println(userName);
+			}
+		}
+	}
 	/*logout client*/
 	public void logout(){
 		pw.println("==========\n>>>>>Bye " + user + "!");
 		Server.onlineClients.remove(user);//remove client from online list
+//		Server.onlineSockets.remove(socket);//remove socket from online list
 		Timer timer = new Timer();
 		timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);//remove client from zombie list after LAST_HOUR
 		Server.dataBase.get(user)[1] = "OFFLINE";//change its status as offline
-		
+		Server.serverWriter.remove(user);//remove the PrintWriter for this socket
 		//drop the connection
 		try {
 			pw.println("==========\n>>>>>Connection closed");
