@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Server {
-	private static final int LAST_HOUR = 60*60*1000; //an hour in milliseconds
-	private static final int BLOCK_TIME = 60*1000; //60 secs in milliseconds
+	public static final long LAST_HOUR = 60*60*1000; //an hour in milliseconds
+	public static final long BLOCK_TIME = 60*1000; //60 secs in milliseconds
 	private static int PORT;//port number on server side
 	private ArrayList<Socket> onlineSockets = new ArrayList<Socket>();//list of all online client sockets
 	private ArrayList<String> ZombieList = new ArrayList<String>();//list of names of online and less than one hour zombies
@@ -42,8 +42,8 @@ public class Server {
 				while((userData = reader.readLine())!=null)
 				{
 					String[] userDataToken = userData.split(" ");
-					//userDataHash = {password, online/offline, ip, lastLogginTime, wrongPasswordTimes, LoginLock, BeBlockedBy}
-					String[] userDataHash = {userDataToken[1], "offline", "", "", "0", "N", ""};
+					//userDataHash = {0 password, 1 online/offline, 2 ip, 3 wrongPasswordTimes, 4 LoginLock, 5 BeBlockedBy}
+					String[] userDataHash = {userDataToken[1], "offline", "", "0", "UNLOCK", ""};
 					dataBase.put(userDataToken[0], userDataHash);
 				}
 			} catch (IOException e) {

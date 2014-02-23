@@ -1,12 +1,11 @@
 package tong;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Timer;
 
 public class ChatThread extends Thread{
 	public Socket socket;
@@ -31,53 +30,113 @@ public class ChatThread extends Thread{
 		}
 	}
 	
-	public void run(){
-		String pass = null;
-		boolean isClient = false;
-		/*initialize input and output*/
-		
+	public void authenticate(boolean isClient){
 		/*Prompt to take client input for username and password*/
-        pw.println("Please enter your username: ");
-		try {
-			user = br.readLine();
-			System.out.println(user);
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		
-		pw.println("Please enter your password: ");
-		try {
-			pass = br.readLine();
-			System.out.println(pass);
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
- 
-//		System.out.println("Please enter your password: ");
-		
-		
-		/*authenticate the client from user_pass.txt file*/
-		if(Server.dataBase.containsKey(user) && Server.dataBase.get(user)[0].equals(pass))
-			isClient = true;
+		while(!isClient){
+			String pass = null;
+			
+			try {
+				do{
+					pw.println("Please enter your username: ");
+					user = br.readLine();
+				}while(user == null || user.equals(""));
+				System.out.println(user);
+				/*check if the client is login locked*/
+				if(Server.dataBase.containsKey(user) 
+						&& Server.dataBase.get(user)[4].equals("LOCK") 
+						&& Server.dataBase.get(user)[2].equals(socket.getInetAddress().toString())){
+					pw.println(user + " is still LOGIN LOCKED. Try later.");
+					//drop the connection
+					try {
+						socket.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;//disconnect
+				}
+					
+			} catch (IOException e2) {
+				// TODO Auto-generated catch block
+				e2.printStackTrace();
+			}
+			
+			try {
+				do{
+					pw.println("Please enter your password: ");
+					pass = br.readLine();
+				}while(pass == null || pass.equals(""));
+				System.out.println(pass);
+			} catch (IOException e2) {
+				// TODO Auto-generated catch block
+				e2.printStackTrace();
+			}
+			
+			
+			/*authenticate the client from user_pass.txt file*/
+			if(Server.dataBase.containsKey(user) && Server.dataBase.get(user)[0].equals(pass))
+				isClient = true;
 
-		/*start to serve the client if authenticated*/
-		if(isClient){
-		
-			pw.println("Welcome " + user + "! " + socket.getInetAddress());//welcome message
-			/*record login status of the client*/
+			/*start to serve the client if authenticated*/
+			if(isClient){
 			
-			
-//			while(true){
-//				
-//			}
+				pw.println("Welcome " + user + "! " + socket.getInetAddress());//welcome message
+				/*record login status of the client*/
+			    Server.dataBase.get(user)[1] = "online";//login status as online
+//				System.out.println(Server.dataBase.get(user)[1]);
+			    Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record ip address
+//			    System.out.println(Server.dataBase.get(user)[2]);
+			    Server.dataBase.get(user)[3] = "0";//reset wrong login times
+//			    System.out.println(Server.dataBase.get(user)[3]);
+			    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
+//			    System.out.println(Server.dataBase.get(user)[4]);
+			}
+			else{
+				/*if no such a user*/
+				if(!Server.dataBase.containsKey(user))
+					pw.println("Invalid username and/or password. Please try again");
+				/*Wrong password. record the wrong trial time*/
+				else{
+					int failTimes = Integer.parseInt(Server.dataBase.get(user)[3]);
+					if(failTimes == 2){//already failed times
+						pw.println("Failed 3 times. Login LOCKED for 60 seconds.");
+						Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record failed IP
+						Server.dataBase.get(user)[4] = "LOCK";//login locked
+						Timer timer = new Timer();  
+						timer.schedule(new LockTimer(user), Server.BLOCK_TIME);
+						 
+						//drop the connection
+						try {
+							socket.close();
+							pw.println("Connection closed.");
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						break;//disconnect
+					}
+					else{
+						pw.println("Invalid username and/or password. Please try again");
+						failTimes++;
+						Server.dataBase.get(user)[3] = failTimes + "";//increase wrong trial time
+					}
+				}
 				
-			/*deal with client commands*/
+			}
 		}
-		else{
-			/*record the wrong trial time*/
+	}
+	public void run(){
+		
+		boolean isClient = false;
+		/*authenticate user*/
+		this.authenticate(isClient);
+		
+		/*serve this client's commands if it is not closed*/
+		if(!socket.isClosed()){
 			
 		}
+		
+		
+        
 	}
 }
