@@ -59,37 +59,13 @@ public class ChatThread extends Thread{
 		
 		
 		/*authenticate the client from user_pass.txt file*/
-		BufferedReader reader = null;
-		try {
-			reader = new BufferedReader(new InputStreamReader(new FileInputStream("user_pass.txt")));
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		String userData = null;
-		try {
-			while((userData = reader.readLine())!=null)
-			{
-				String[] userDataToken = userData.split(" ");
-				if(userDataToken[0].equals(user) && userDataToken[1].equals(pass)){
-					isClient = true;
-					break;
-				}
-				 
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
-			br.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		if(Server.dataBase.containsKey(user) && Server.dataBase.get(user)[0].equals(pass))
+			isClient = true;
+
 		/*start to serve the client if authenticated*/
 		if(isClient){
-			System.out.println(socket.getInetAddress() + " logged in");
+		
+			pw.println("Welcome " + user + "! " + socket.getInetAddress());//welcome message
 			/*record login status of the client*/
 			
 			

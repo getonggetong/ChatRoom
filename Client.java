@@ -46,15 +46,16 @@ public class Client{
         
         String serverMsg;
         /*wait messages from server*/
-        try {
-			while((serverMsg = br.readLine()) != null){
-				System.out.println(serverMsg);
+        while(true){
+	        try {
+				while((serverMsg = br.readLine()) != null){
+					System.out.println(serverMsg);
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        
+        }
 	}
 	
 	public static void main(String[] args){
