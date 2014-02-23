@@ -14,6 +14,7 @@ import java.util.HashMap;
 public class Server {
 	public static final long LAST_HOUR = 60*60*1000; //an hour in milliseconds
 	public static final long BLOCK_TIME = 60*1000; //60 secs in milliseconds
+	public static final long TIME_OUT = 5000; //half an hour in milliseconds
 	private static int PORT;//port number on server side
 	public static ArrayList<String> onlineClients = new ArrayList<String>();//list of all online client clients
 //	public static ArrayList<Socket> onlineSockets = new ArrayList<Socket>();//list of all online client clients
@@ -21,7 +22,6 @@ public class Server {
 	private ServerSocket server;//server socket
 	public static HashMap<String, String[]> dataBase;
 	public static HashMap<String, PrintWriter> serverWriter = new HashMap<String, PrintWriter>();
-	
 	
 	public Server(){
 		try {

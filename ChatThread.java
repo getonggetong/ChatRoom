@@ -42,8 +42,7 @@ public class ChatThread extends Thread{
 					pw.println("==========\n>>>>>Please enter your username:");
 					user = br.readLine();
 				}while(user == null || user.equals(""));
-				System.out.println(user);
-				
+
 				/*check if the client is login locked*/
 				if(Server.dataBase.containsKey(user) 
 						&& Server.dataBase.get(user)[4].equals("LOCK") 
@@ -85,7 +84,6 @@ public class ChatThread extends Thread{
 					pw.println("==========\n>>>>>Please enter your password:");
 					pass = br.readLine();
 				}while(pass == null || pass.equals(""));
-				System.out.println(pass);
 			} catch (IOException e2) {
 				// TODO Auto-generated catch block
 				e2.printStackTrace();
@@ -98,7 +96,7 @@ public class ChatThread extends Thread{
 
 			/*start to serve the client if authenticated*/
 			if(isClient){
-			
+				System.out.println(user + socket.getInetAddress() + " login.");
 				pw.println("==========\n>>>>>Welcome " + user + "! " + socket.getInetAddress());//welcome message
 				/*record login status of the client*/
 			    Server.dataBase.get(user)[1] = "ONLINE";//login status as online
@@ -151,26 +149,31 @@ public class ChatThread extends Thread{
 		}
 	}
 	public void run(){
-		
+		boolean isLogin = true;
 		boolean isClient = false;
 		/*authenticate user*/
 		this.authenticate(isClient);
 		/*serve this client's commands if it is not closed*/
 		if(!socket.isClosed()){
 			String command = null;
-			while(true){
+			while(isLogin){
 				pw.println("==========\n>>>>>Command:");
 				try {
+					Timer timeOutTimer = new Timer();
+					timeOutTimer.schedule(new TimeOutTimer(this, isLogin), Server.TIME_OUT);//logout current client if inactive for TIME_OUT
+					
 					command = br.readLine();
+					timeOutTimer.cancel();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+//					e.printStackTrace();
+					break;
 				}
 				
 				if(command != null){
 					/*logout this client*/
 					if(command.equals("logout")){
-						logout();
+						logout(isLogin);
 						break;//disconnect
 					}
 					/*who is currently online*/
@@ -319,16 +322,17 @@ public class ChatThread extends Thread{
 		}
 	}
 	/*logout client*/
-	public void logout(){
+	public void logout(boolean isLogin){
 		pw.println("==========\n>>>>>Bye " + user + "!");
 		Server.onlineClients.remove(user);//remove client from online list
-//		Server.onlineSockets.remove(socket);//remove socket from online list
+		
 		Timer timer = new Timer();
 		timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);//remove client from zombie list after LAST_HOUR
 		Server.dataBase.get(user)[1] = "OFFLINE";//change its status as offline
 		Server.serverWriter.remove(user);//remove the PrintWriter for this socket
 		//drop the connection
 		try {
+			isLogin = false;
 			pw.println("==========\n>>>>>Connection closed");
 			socket.close();
 		} catch (IOException e) {
