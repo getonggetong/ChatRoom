@@ -45,7 +45,7 @@ public class Server {
 				while((userData = reader.readLine())!=null)
 				{
 					String[] userDataToken = userData.split(" ");
-					//userDataHash = {0 password, 1 online/offline, 2 ip, 3 wrongPasswordTimes, 4 LoginLock, 5 BeBlockedBy, 6 OfflineMsg}
+					//userDataHash = {0 password, 1 online/offline, 2 ip, 3 wrongPasswordTimes, 4 LoginLock, 5 Block, 6 OfflineMsg}
 					String[] userDataHash = {userDataToken[1], "OFFLINE", "", "0", "UNLOCK", "", ""};
 					dataBase.put(userDataToken[0], userDataHash);
 				}

@@ -159,6 +159,7 @@ public class ChatThread extends Thread{
 		if(!socket.isClosed()){
 			String command = null;
 			while(true){
+				pw.println("==========\n>>>>>Command:");
 				try {
 					command = br.readLine();
 				} catch (IOException e) {
@@ -188,10 +189,71 @@ public class ChatThread extends Thread{
 					else if(command.split(" ")[0].equals("message")){
 						privateMsg(Server.serverWriter, Server.dataBase, command);
 					}
+					/*block clients*/
+					else if(command.split(" ")[0].equals("block")){
+						block(Server.dataBase, command);
+					}
+					/*unblock clients*/
+					else if(command.split(" ")[0].equals("unblock")){
+						unblock(Server.dataBase, command);
+					}
 					else{
 						pw.println("\"" + command + "\"" + "Command Not Found");
 					}
 				}
+			}
+		}
+	}
+	/*unblock clients*/
+	public void unblock(HashMap<String, String[]> dataBase, String command){
+		String newBlockList = "";//new blocklist after unblock
+		if(command.split(" ").length < 2)//error if command is too short
+			pw.println("==========\n>>>>>No target client.");
+		else{
+			String targetUser = command.split(" ")[1];
+			/*error if client unblocks himself*/
+			if(targetUser.equals(user))
+				pw.println("==========\n>>>>>Error! You cannot unblock yourself!");
+			else{
+				String[] blockList = dataBase.get(user)[5].split(" ");
+				boolean isBlocked = false;
+				/*iterate the blocklist to check if target user is blocked*/
+				for(int i = 0; i < blockList.length; i++){
+					/*remove target user from block list if exists*/
+					if(blockList[i].equals(targetUser)){
+						isBlocked = true;
+					}
+					/*add old blocked users into new blocklist if not unblocked*/
+					else{
+						newBlockList = newBlockList.concat(blockList[i] + " ");
+					}
+				}
+				
+				
+				/*error if target user is not currently blocked*/
+				if(!isBlocked){
+					pw.println("==========\n>>>>>Error! " + targetUser + " is not blocked!");
+				}
+				else{
+					pw.println("==========\n>>>>>You have successfully unblocked " +targetUser + ".");
+					dataBase.get(user)[5] = newBlockList;//update blocklist for current client
+				}
+			}
+		}
+	}
+	/*block clients from sending current client messages*/
+	public void block(HashMap<String, String[]> dataBase, String command){
+		if(command.split(" ").length < 2)//error if command is too short
+			pw.println("==========\n>>>>>No target client.");
+		else{
+			String targetUser = command.split(" ")[1];
+			/*error if client blocks himself*/
+			if(targetUser.equals(user))
+				pw.println("==========\n>>>>>Error! You cannot block yourself!");
+			else{
+				dataBase.get(user)[5]= dataBase.get(user)[5].concat(" " + targetUser);
+				System.out.println(dataBase.get(user)[5]);
+				pw.println("==========\n>>>>>You have successfully blocked " + targetUser + " from sending you messages.");
 			}
 		}
 	}
@@ -205,9 +267,21 @@ public class ChatThread extends Thread{
 			for(int i = 2; i < subCmd.length; i++){
 				msg = msg.concat(subCmd[i]).concat(" ");
 			}
-			/*send private message if target client is online*/
+			/*if target client is online*/
 			if(map.containsKey(targetUser)){
-				map.get(targetUser).println(msg);
+				/*check if current user is blocked by target user*/
+				String[] blockList = dataBase.get(targetUser)[5].split(" ");
+				boolean isBlocked = false;
+				for(int i = 0; i < blockList.length; i++){
+					if(blockList[i].equals(user)){
+						pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+						isBlocked = true;
+						break;
+					}
+				}
+				/*send message if not blocked*/
+				if(!isBlocked)
+					map.get(targetUser).println(msg);
 				
 			}
 			/*store the message if target client is not online*/
