@@ -160,11 +160,12 @@ public class ChatThread extends Thread{
 					e.printStackTrace();
 				}
 				if(command.equals("logout")){
-					pw.println("Bye " + user);
+					pw.println("Bye " + user + "!");
 					Server.onlineSockets.remove(socket);
 					Timer timer = new Timer();
 					timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);
 					Server.dataBase.get(user)[1] = "OFFLINE";
+					
 					//drop the connection
 					try {
 						pw.println("Connection closed.");
@@ -173,7 +174,10 @@ public class ChatThread extends Thread{
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					break;//disconnect
+					while(true){
+						System.out.println(Server.zombieList.size());
+					}
+//					break;//disconnect
 				}
 			}
 		}
