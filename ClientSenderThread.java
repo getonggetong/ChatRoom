@@ -13,10 +13,13 @@ public class ClientSenderThread extends Thread{
 	
 	public void run(){
 		/*wait for client input and send messages to server*/
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while(true){
-        	BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             try {
-    			pw.println(reader.readLine());
+            	String command = reader.readLine();
+            	System.out.println(command);
+            	if(command != null && !command.equals(""))
+            		pw.println(command);
     		} catch (IOException e) {
     			// TODO Auto-generated catch block
     			e.printStackTrace();

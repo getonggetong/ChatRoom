@@ -107,6 +107,8 @@ public class ChatThread extends Thread{
 //			    System.out.println(Server.dataBase.get(user)[3]);
 			    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
 //			    System.out.println(Server.dataBase.get(user)[4]);
+			    Server.onlineSockets.add(socket);//add the socket into online socket list
+			    Server.zombieList.add(user);//add username into zombie list
 			}
 			else{
 				/*if no such a user*/
@@ -147,10 +149,33 @@ public class ChatThread extends Thread{
 		boolean isClient = false;
 		/*authenticate user*/
 		this.authenticate(isClient);
-		
 		/*serve this client's commands if it is not closed*/
 		if(!socket.isClosed()){
-			
+			String command = null;
+			while(true){
+				try {
+					command = br.readLine();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if(command.equals("logout")){
+					pw.println("Bye " + user);
+					Server.onlineSockets.remove(socket);
+					Timer timer = new Timer();
+					timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);
+					Server.dataBase.get(user)[1] = "OFFLINE";
+					//drop the connection
+					try {
+						pw.println("Connection closed.");
+						socket.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;//disconnect
+				}
+			}
 		}
 		
 		
