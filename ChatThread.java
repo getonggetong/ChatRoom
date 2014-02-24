@@ -6,13 +6,16 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ChatThread extends Thread{
 	public Socket socket;
 	public String user;
 	PrintWriter pw;
 	BufferedReader br;
-
+	private ReadWriteLock rwl = new ReentrantReadWriteLock();//read write lock
+    
 	public ChatThread(Socket socket){
 		this.socket = socket;
 		try {
@@ -40,11 +43,11 @@ public class ChatThread extends Thread{
 					pw.println("==========\n>>>>>Please enter your username:");
 					user = br.readLine();
 				}while(user == null || user.equals(""));
-
+                
 				/*check if the client is login locked*/
-				if(Server.dataBase.containsKey(user) 
-						&& Server.dataBase.get(user)[4].equals("LOCK") 
-						&& Server.dataBase.get(user)[2].equals(socket.getInetAddress().toString())){
+				if(Server.dataBase.containsKey(user)
+                   && Server.dataBase.get(user)[4].equals("LOCK")
+                   && Server.dataBase.get(user)[2].equals(socket.getInetAddress().toString())){
 					pw.println("==========\n>>>>>" + user + " is still LOGIN LOCKED. Try later.");
 					//drop the connection
 					try {
@@ -71,7 +74,7 @@ public class ChatThread extends Thread{
 					}
 					break;//disconnect
 				}
-					
+                
 			} catch (IOException e2) {
 				// TODO Auto-generated catch block
 				e2.printStackTrace();
@@ -91,26 +94,32 @@ public class ChatThread extends Thread{
 			/*authenticate the client from user_pass.txt file*/
 			if(Server.dataBase.containsKey(user) && Server.dataBase.get(user)[0].equals(pass))
 				isClient = true;
-
+            
 			/*start to serve the client if authenticated*/
 			if(isClient){
 				System.out.println(user + socket.getInetAddress() + " login.");
 				pw.println("==========\n>>>>>Welcome " + user + "! " + socket.getInetAddress());//welcome message
 				/*record login status of the client*/
-			    Server.dataBase.get(user)[1] = "ONLINE";//login status as online
-//				System.out.println(Server.dataBase.get(user)[1]);
-			    Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record ip address
-//			    System.out.println(Server.dataBase.get(user)[2]);
-			    Server.dataBase.get(user)[3] = "0";//reset wrong login times
-//			    System.out.println(Server.dataBase.get(user)[3]);
-			    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
-//			    System.out.println(Server.dataBase.get(user)[4]);
-			    Server.onlineClients.add(user);//add the client into online list
-//			    Server.onlineSockets.add(socket);//add the socket into online list
-			    Server.zombieList.add(user);//add username into zombie list
-			    Server.serverWriter.put(user, pw);//add the PrintWriter of this socket
-			    pw.println(Server.dataBase.get(user)[6]);//send all offline messages
-			    Server.dataBase.get(user)[6] = "";//reset offline messages buffer
+				rwl.writeLock().lock();//get a write lock when writing to dataBase
+				try{
+					Server.dataBase.get(user)[1] = "ONLINE";//login status as online
+                    //					System.out.println(Server.dataBase.get(user)[1]);
+				    Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record ip address
+                    //				    System.out.println(Server.dataBase.get(user)[2]);
+				    Server.dataBase.get(user)[3] = "0";//reset wrong login times
+                    //				    System.out.println(Server.dataBase.get(user)[3]);
+				    Server.dataBase.get(user)[4] = "UNLOCK";//reset login lock
+                    //				    System.out.println(Server.dataBase.get(user)[4]);
+				    Server.onlineClients.add(user);//add the client into online list
+                    //				    Server.onlineSockets.add(socket);//add the socket into online list
+				    Server.zombieList.add(user);//add username into zombie list
+				    Server.serverWriter.put(user, pw);//add the PrintWriter of this socket
+				    pw.println(Server.dataBase.get(user)[6]);//send all offline messages
+				    Server.dataBase.get(user)[6] = "";//reset offline messages buffer
+				} finally {
+					rwl.writeLock().unlock();//release lock
+				}
+			    
 			}
 			else{
 				/*if no such a user*/
@@ -123,9 +132,9 @@ public class ChatThread extends Thread{
 						pw.println("Failed 3 times. Login LOCKED for 60 seconds.");
 						Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record failed IP
 						Server.dataBase.get(user)[4] = "LOCK";//login locked
-						Timer timer = new Timer();  
+						Timer timer = new Timer();
 						timer.schedule(new LockTimer(user), Server.BLOCK_TIME);
-						 
+                        
 						//drop the connection
 						try {
 							pw.println("==========\n>>>>>Connection closed.");
@@ -164,7 +173,7 @@ public class ChatThread extends Thread{
 					timeOutTimer.cancel();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-//					e.printStackTrace();
+                    //					e.printStackTrace();
 					break;
 				}
 				
@@ -236,8 +245,14 @@ public class ChatThread extends Thread{
 					pw.println("==========\n>>>>>Error! " + targetUser + " is not blocked!");
 				}
 				else{
-					pw.println("==========\n>>>>>You have successfully unblocked " +targetUser + ".");
-					dataBase.get(user)[5] = newBlockList;//update blocklist for current client
+					rwl.writeLock().lock();
+					try{
+						pw.println("==========\n>>>>>You have successfully unblocked " +targetUser + ".");
+						dataBase.get(user)[5] = newBlockList;//update blocklist for current client
+					} finally{
+						rwl.writeLock().unlock();
+					}
+					
 				}
 			}
 		}
@@ -252,9 +267,15 @@ public class ChatThread extends Thread{
 			if(targetUser.equals(user))
 				pw.println("==========\n>>>>>Error! You cannot block yourself!");
 			else{
-				dataBase.get(user)[5]= dataBase.get(user)[5].concat(" " + targetUser);
-				System.out.println(dataBase.get(user)[5]);
-				pw.println("==========\n>>>>>You have successfully blocked " + targetUser + " from sending you messages.");
+				rwl.writeLock().lock();//get write lock when writing to block list
+				try{
+					dataBase.get(user)[5]= dataBase.get(user)[5].concat(" " + targetUser);
+					System.out.println(dataBase.get(user)[5]);
+					pw.println("==========\n>>>>>You have successfully blocked " + targetUser + " from sending you messages.");
+				} finally{
+					rwl.writeLock().unlock();
+				}
+				
 			}
 		}
 	}
@@ -271,18 +292,24 @@ public class ChatThread extends Thread{
 			/*if target client is online*/
 			if(map.containsKey(targetUser)){
 				/*check if current user is blocked by target user*/
-				String[] blockList = dataBase.get(targetUser)[5].split(" ");
-				boolean isBlocked = false;
-				for(int i = 0; i < blockList.length; i++){
-					if(blockList[i].equals(user)){
-						pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
-						isBlocked = true;
-						break;
+				rwl.readLock().lock();//get read lock
+				try{
+					String[] blockList = dataBase.get(targetUser)[5].split(" ");
+					boolean isBlocked = false;
+					for(int i = 0; i < blockList.length; i++){
+						if(blockList[i].equals(user)){
+							pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+							isBlocked = true;
+							break;
+						}
 					}
+					/*send message if not blocked*/
+					if(!isBlocked)
+						map.get(targetUser).println(msg);
+				} finally{
+					rwl.readLock().unlock();//release readlock
 				}
-				/*send message if not blocked*/
-				if(!isBlocked)
-					map.get(targetUser).println(msg);
+				
 				
 			}
 			/*store the message if target client is not online*/
@@ -298,7 +325,14 @@ public class ChatThread extends Thread{
 	}
 	/*broadcast to all online clients*/
 	public void broadcast(HashMap<String, PrintWriter> map, String command){
-		Object[] pws = map.values().toArray();//transfer values (PrintWriters) in the HashMap into an array
+		Object[] pws;
+		rwl.readLock().lock();
+		try{
+			pws = map.values().toArray();//transfer values (PrintWriters) in the HashMap into an array
+		} finally{
+			rwl.readLock().unlock();
+		}
+		
 		String msg = command.replace("broadcast ", "");//get broadcast message
 		for(int i = 0; i < pws.length; i++){//iterate all PrintWriters in the HashMap of online clients
 			PrintWriter brcstPw = (PrintWriter) pws[i];
@@ -312,17 +346,29 @@ public class ChatThread extends Thread{
 		/*no clients online except the current one*/
 		if(list.size() == 1)
 			pw.println("==========\n>>>>>No one else online");
-		for(int i = 0; i < list.size(); i++){
-			userName =  list.get(i);
-			if(!userName.equals(user) && userName != null){
-				pw.println(userName);
+		else{
+			rwl.readLock().lock();
+			try{
+				for(int i = 0; i < list.size(); i++){
+					userName =  list.get(i);
+					if(!userName.equals(user) && userName != null){
+						pw.println(userName);
+					}
+				}
+			} finally{
+				rwl.readLock().unlock();
 			}
 		}
 	}
 	/*logout client*/
 	public void logout(boolean isLogin){
-		pw.println("==========\n>>>>>Bye " + user + "!");
-		Server.onlineClients.remove(user);//remove client from online list
+		rwl.writeLock().lock();
+		try{
+			pw.println("==========\n>>>>>Bye " + user + "!");
+			Server.onlineClients.remove(user);//remove client from online list
+		} finally {
+			rwl.writeLock().unlock();
+		}
 		
 		Timer timer = new Timer();
 		timer.schedule(new LastLoginTimer(user), Server.LAST_HOUR);//remove client from zombie list after LAST_HOUR
