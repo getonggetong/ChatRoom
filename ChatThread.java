@@ -291,38 +291,54 @@ public class ChatThread extends Thread{
 				msg = msg.concat(subCmd[i]).concat(" ");
 			}
 			/*if target client is online*/
-			if(map.containsKey(targetUser)){
-				/*check if current user is blocked by target user*/
-				rwl.readLock().lock();//get read lock
-				try{
-					String[] blockList = dataBase.get(targetUser)[5].split(" ");
-					boolean isBlocked = false;
-					for(int i = 0; i < blockList.length; i++){
-						if(blockList[i].equals(user)){
-							pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
-							isBlocked = true;
-							break;
+			if(!user.equals(targetUser)){
+				if(map.containsKey(targetUser)){
+					/*check if current user is blocked by target user*/
+					rwl.readLock().lock();//get read lock
+					try{
+						String[] blockList = dataBase.get(targetUser)[5].split(" ");
+						boolean isBlocked = false;
+						for(int i = 0; i < blockList.length; i++){
+							if(blockList[i].equals(user)){
+								pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+								isBlocked = true;
+								break;
+							}
 						}
+						/*send message if not blocked*/
+						if(!isBlocked)
+							map.get(targetUser).println(msg);
+					} finally{
+						rwl.readLock().unlock();//release readlock
 					}
-					/*send message if not blocked*/
-					if(!isBlocked)
-						map.get(targetUser).println(msg);
-				} finally{
-					rwl.readLock().unlock();//release readlock
 				}
-				
-				
-			}
-			/*store the message if target client is not online*/
-			else if(dataBase.containsKey(targetUser)){
-				dataBase.get(targetUser)[6] = dataBase.get(targetUser)[6].concat(msg + "\n");
-			}
-			/*Invalid target user*/
-			else{
-				pw.println("User " + targetUser + "doesn't exist.");
+				/*store the message if target client is not online*/
+				else if(dataBase.containsKey(targetUser)){
+					/*check if current user is blocked by target user*/
+					rwl.readLock().lock();//get read lock
+					try{
+						String[] blockList = dataBase.get(targetUser)[5].split(" ");
+						boolean isBlocked = false;
+						for(int i = 0; i < blockList.length; i++){
+							if(blockList[i].equals(user)){
+								pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+								isBlocked = true;
+								break;
+							}
+						}
+						/*send message if not blocked*/
+						if(!isBlocked)
+							dataBase.get(targetUser)[6] = dataBase.get(targetUser)[6].concat(msg + "\n");
+					} finally{
+						rwl.readLock().unlock();//release readlock
+					}
+				}
+				/*Invalid target user*/
+				else{
+					pw.println("User " + targetUser + "doesn't exist.");
+				}
 			}
 		}
-		
 	}
 	/*broadcast to all online clients*/
 	public void broadcast(HashMap<String, PrintWriter> map, String command){
@@ -337,8 +353,8 @@ public class ChatThread extends Thread{
 		String msg = command.replace("broadcast ", "");//get broadcast message
 		for(int i = 0; i < pws.length; i++){//iterate all PrintWriters in the HashMap of online clients
 			PrintWriter brcstPw = (PrintWriter) pws[i];
-			if(!brcstPw.equals(pw))//broadcast to all other online clients
-				brcstPw.println(user + ": " + msg);
+			// if(!brcstPw.equals(pw))//broadcast to all other online clients
+			brcstPw.println(user + ": " + msg);
 		}
 	}
 	/*deal with who's online and who login in last hour*/
