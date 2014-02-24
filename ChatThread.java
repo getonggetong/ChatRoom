@@ -132,6 +132,7 @@ public class ChatThread extends Thread{
 						pw.println("Failed 3 times. Login LOCKED for 60 seconds.");
 						Server.dataBase.get(user)[2] = socket.getInetAddress().toString();//record failed IP
 						Server.dataBase.get(user)[4] = "LOCK";//login locked
+                        Server.dataBase.get(user)[3] = "0"; //reset fail time
 						Timer timer = new Timer();
 						timer.schedule(new LockTimer(user), Server.BLOCK_TIME);
                         
