@@ -1,5 +1,3 @@
-package tong;
-
 public class LockTimer extends java.util.TimerTask{
 	public String user;
 	public LockTimer(String user){

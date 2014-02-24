@@ -1,5 +1,3 @@
-package tong;
-
 import java.io.PrintWriter;
 
 public class ShutDownHook{

@@ -1,5 +1,3 @@
-package tong;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +12,7 @@ import java.util.HashMap;
 public class Server {
 	public static final long LAST_HOUR = 60*60*1000; //an hour in milliseconds
 	public static final long BLOCK_TIME = 60*1000; //60 secs in milliseconds
-	public static final long TIME_OUT = 5000; //half an hour in milliseconds
+	public static final long TIME_OUT = 30*60*1000; //half an hour in milliseconds
 	private static int PORT;//port number on server side
 	public static ArrayList<String> onlineClients = new ArrayList<String>();//list of all online client clients
 //	public static ArrayList<Socket> onlineSockets = new ArrayList<Socket>();//list of all online client clients

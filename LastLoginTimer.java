@@ -1,5 +1,3 @@
-package tong;
-
 public class LastLoginTimer extends java.util.TimerTask{
 	public String user;
 	public LastLoginTimer(String user){

@@ -1,5 +1,3 @@
-package tong;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -53,12 +51,18 @@ public class Client{
 	        try {
 				while((serverMsg = br.readLine()) != null){
 					System.out.println(serverMsg);
+					/*break if connection is dropped*/
+					if(serverMsg.contains(">>>>Connection")){
+						break;
+					}
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			break;
         }
+        System.exit(0);//exit program
 	}
 	
 	
