@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Date;
 
 public class ChatThread extends Thread{
 	public Socket socket;
@@ -99,6 +100,8 @@ public class ChatThread extends Thread{
 			if(isClient){
 				System.out.println(user + socket.getInetAddress() + " login.");
 				pw.println("==========\n>>>>>Welcome " + user + "! " + socket.getInetAddress());//welcome message
+				if(!Server.dataBase.get(user)[2].equals(""))
+					pw.println("\n>>>>>Your last login IP is " + Server.dataBase.get(user)[2]);
 				/*record login status of the client*/
 				rwl.writeLock().lock();//get a write lock when writing to dataBase
 				try{
@@ -194,7 +197,7 @@ public class ChatThread extends Thread{
 					}
 					/*broadcast*/
 					else if(command.split(" ")[0].equals("broadcast")){
-						broadcast(Server.serverWriter, command);
+						broadcast(Server.dataBase, Server.serverWriter, command);
 					}
 					/*private message*/
 					else if(command.split(" ")[0].equals("message")){
@@ -208,10 +211,77 @@ public class ChatThread extends Thread{
 					else if(command.split(" ")[0].equals("unblock")){
 						unblock(Server.dataBase, command);
 					}
+					/*timed message*/
+					else if(command.split(" ")[0].equals("tmessage")){
+						timedMsg(Server.serverWriter, Server.dataBase, command);
+					}
 					else{
 						pw.println("\"" + command + "\"" + "Command Not Found");
 					}
 				}
+			}
+		}
+	}
+	/*private message with time*/
+	public void timedMsg(HashMap<String, PrintWriter> map, HashMap<String, String[]> dataBase, String command){
+		String[] subCmd = command.split(" ");
+		String targetUser = subCmd[1];
+		String msg = user + ": ";
+		/*construct the whole message*/
+		if(subCmd.length >= 2){
+			for(int i = 2; i < subCmd.length; i++){
+				msg = msg.concat(subCmd[i]).concat(" ");
+			}
+			/*if target client is online*/
+			if(!user.equals(targetUser)){
+				if(map.containsKey(targetUser)){
+					/*check if current user is blocked by target user*/
+					rwl.readLock().lock();//get read lock
+					try{
+						String[] blockList = dataBase.get(targetUser)[5].split(" ");
+						boolean isBlocked = false;
+						for(int i = 0; i < blockList.length; i++){
+							if(blockList[i].equals(user)){
+								pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+								isBlocked = true;
+								break;
+							}
+						}
+						/*send message if not blocked*/
+						if(!isBlocked)
+							map.get(targetUser).println(new Date(System.currentTimeMillis()) + "\n" + msg);
+					} finally{
+						rwl.readLock().unlock();//release readlock
+					}
+				}
+				/*store the message if target client is not online*/
+				else if(dataBase.containsKey(targetUser)){
+					/*check if current user is blocked by target user*/
+					rwl.readLock().lock();//get read lock
+					try{
+						String[] blockList = dataBase.get(targetUser)[5].split(" ");
+						boolean isBlocked = false;
+						for(int i = 0; i < blockList.length; i++){
+							if(blockList[i].equals(user)){
+								pw.println("==========\n>>>>>You cannot send any message to " +targetUser + ". You have been blocked by the user.");
+								isBlocked = true;
+								break;
+							}
+						}
+						/*send message if not blocked*/
+						if(!isBlocked)
+							dataBase.get(targetUser)[6] = dataBase.get(targetUser)[6].concat(new Date(System.currentTimeMillis()) + "\n" + msg + "\n");
+					} finally{
+						rwl.readLock().unlock();//release readlock
+					}
+				}
+				/*Invalid target user*/
+				else{
+					pw.println("User " + targetUser + "doesn't exist.");
+				}
+			}
+			else{
+				pw.println("==========\n>>>>>You cannot send message to yourself.");
 			}
 		}
 	}
@@ -270,9 +340,15 @@ public class ChatThread extends Thread{
 			else{
 				rwl.writeLock().lock();//get write lock when writing to block list
 				try{
-					dataBase.get(user)[5]= dataBase.get(user)[5].concat(" " + targetUser);
-					System.out.println(dataBase.get(user)[5]);
-					pw.println("==========\n>>>>>You have successfully blocked " + targetUser + " from sending you messages.");
+					//check if the username is valid
+					if(dataBase.containsKey(targetUser)){
+						dataBase.get(user)[5]= dataBase.get(user)[5].concat(" " + targetUser);
+						pw.println("==========\n>>>>>You have successfully blocked " + targetUser + " from sending you messages.");
+					}
+					else{
+						pw.println("==========\n>>>>>The user " + targetUser + " does not exist.");
+					}
+					
 				} finally{
 					rwl.writeLock().unlock();
 				}
@@ -338,10 +414,13 @@ public class ChatThread extends Thread{
 					pw.println("User " + targetUser + "doesn't exist.");
 				}
 			}
+			else{
+				pw.println("==========\n>>>>>You cannot send message to yourself.");
+			}
 		}
 	}
 	/*broadcast to all online clients*/
-	public void broadcast(HashMap<String, PrintWriter> map, String command){
+	public void broadcast(HashMap<String, String[]> dataBase, HashMap<String, PrintWriter> map, String command){
 		Object[] pws;
 		rwl.readLock().lock();
 		try{

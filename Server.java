@@ -53,6 +53,7 @@ public class Server {
 			}
 			
 			reader.close();
+			//initialize emotion database
 			System.out.println("Server on------------------------");
 			
 			while(true){

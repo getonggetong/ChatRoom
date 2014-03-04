@@ -25,7 +25,7 @@ public class Client{
 		/*initiate input and output stream*/
 		
 		try {
-			pw=new PrintWriter(socket.getOutputStream(),true);
+			pw = new PrintWriter(socket.getOutputStream(),true);
 		} catch (IOException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
@@ -40,7 +40,7 @@ public class Client{
 		}
         
         /*create new thread to wait user input and send message to server*/
-        final ClientSenderThread csThread = new ClientSenderThread(pw);
+        final ClientSenderThread csThread = new ClientSenderThread(pw, socket);
         /*register shutdownhook to deal with exit of clients*/
         new ShutDownHook(pw);
         csThread.start();

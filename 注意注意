@@ -1,0 +1,9 @@
+这个文件夹里的代码是为了交的 和eclipse的有些不同
+
+改了用户不能给自己发消息
+改了broadcast包括自己
+改了个bug！A block B, A 退出之后 B 就可以给他发离线， A 上线之后会收到离线，但是会继续block B. 改成无论A是否在线都会block B。
+
+加了check被block的用户是否存在
+加了timed message
+加了打印上次login时间
